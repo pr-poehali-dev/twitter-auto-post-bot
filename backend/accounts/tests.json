@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "Get all accounts",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Create new account",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "username": "test_user_{{timestamp}}",
+        "authToken": "test_token_123",
+        "avatarUrl": "https://example.com/avatar.jpg"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "account": {
+          "is_active": true
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

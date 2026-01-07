@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "Get all posts",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Create new post",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "content": "Test post content",
+        "scheduledTime": "2026-01-08T10:00:00Z"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "post": {
+          "content": "Test post content",
+          "status": "pending"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

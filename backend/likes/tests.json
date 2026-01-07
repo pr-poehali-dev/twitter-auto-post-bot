@@ -1,0 +1,10 @@
+{
+  "tests": [
+    {
+      "name": "Get all likes",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}
