@@ -50,6 +50,8 @@ const Index = () => {
   const [attachedVideo, setAttachedVideo] = useState<{ name: string; url: string } | null>(null);
   const [mutualLikes, setMutualLikes] = useState(true);
   const [likesPerPost, setLikesPerPost] = useState('2');
+  const [isScenarioRunning, setIsScenarioRunning] = useState(false);
+  const [scenarioProgress, setScenarioProgress] = useState(0);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -134,6 +136,59 @@ const Index = () => {
     }
   };
 
+  const handleStartScenario = () => {
+    if (posts.length === 0) {
+      toast({
+        title: 'Нет постов',
+        description: 'Добавьте посты для публикации',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (accounts.filter(a => a.status === 'active').length === 0) {
+      toast({
+        title: 'Нет активных аккаунтов',
+        description: 'Добавьте активные аккаунты для публикации',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsScenarioRunning(true);
+    setScenarioProgress(0);
+
+    toast({
+      title: '🚀 Сценарий запущен',
+      description: `Старт публикации ${posts.filter(p => p.status === 'pending').length} постов с интервалом ${postInterval} минут`,
+    });
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      setScenarioProgress(progress);
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        setIsScenarioRunning(false);
+        toast({
+          title: '✅ Сценарий завершен',
+          description: 'Все посты успешно опубликованы',
+        });
+      }
+    }, 500);
+  };
+
+  const handleStopScenario = () => {
+    setIsScenarioRunning(false);
+    setScenarioProgress(0);
+    toast({
+      title: 'Сценарий остановлен',
+      description: 'Публикация приостановлена',
+      variant: 'destructive'
+    });
+  };
+
   const activeAccounts = accounts.filter(a => a.status === 'active').length;
   const totalPosts = accounts.reduce((sum, a) => sum + a.postsCount, 0);
   const pendingPosts = posts.filter(p => p.status === 'pending').length;
@@ -141,17 +196,53 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background dark">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Twitter AutoPost
-            </h1>
-            <p className="text-muted-foreground mt-1">Автоматизация публикаций с ротацией аккаунтов</p>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Twitter AutoPost
+              </h1>
+              <p className="text-muted-foreground mt-1">Автоматизация публикаций с ротацией аккаунтов</p>
+            </div>
+            <div className="flex gap-3">
+              {isScenarioRunning ? (
+                <Button size="lg" variant="destructive" className="gap-2" onClick={handleStopScenario}>
+                  <Icon name="Square" size={18} />
+                  Остановить
+                </Button>
+              ) : (
+                <Button size="lg" className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700" onClick={handleStartScenario}>
+                  <Icon name="Play" size={18} />
+                  Запустить сценарий
+                </Button>
+              )}
+              <Button size="lg" variant="outline" className="gap-2">
+                <Icon name="Settings" size={18} />
+                Настройки
+              </Button>
+            </div>
           </div>
-          <Button size="lg" className="gap-2">
-            <Icon name="Settings" size={18} />
-            Настройки API
-          </Button>
+          
+          {isScenarioRunning && (
+            <Card className="border-green-500/50 bg-green-950/20">
+              <CardContent className="pt-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="animate-pulse h-3 w-3 rounded-full bg-green-500"></div>
+                      <span className="font-medium">Сценарий выполняется...</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">{scenarioProgress}%</span>
+                  </div>
+                  <Progress value={scenarioProgress} className="h-2" />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Публикация через аккаунты: {accounts.filter(a => a.status === 'active').map(a => a.username).join(', ')}</span>
+                    <span>Интервал: {postInterval} мин</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
