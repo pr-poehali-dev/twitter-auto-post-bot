@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "Check Twitter connection",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "message": "string",
+        "user": {
+          "id": "string",
+          "username": "string",
+          "name": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create tweet with text",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "text": "Test tweet from automated posting system"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "message": "string",
+        "tweet": {
+          "id": "string",
+          "text": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

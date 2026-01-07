@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/ui/icon';
 import { toast } from '@/hooks/use-toast';
+import func2url from '../../func2url.json';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface Account {
@@ -52,6 +53,8 @@ const Index = () => {
   const [likesPerPost, setLikesPerPost] = useState('2');
   const [isScenarioRunning, setIsScenarioRunning] = useState(false);
   const [scenarioProgress, setScenarioProgress] = useState(0);
+  const [twitterConnected, setTwitterConnected] = useState(false);
+  const [checkingConnection, setCheckingConnection] = useState(false);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -114,6 +117,40 @@ const Index = () => {
         title: 'Видео прикреплено',
         description: file.name,
       });
+    }
+  };
+
+  const checkTwitterConnection = async () => {
+    setCheckingConnection(true);
+    try {
+      const response = await fetch(func2url.twitter, {
+        method: 'GET',
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setTwitterConnected(true);
+        toast({
+          title: 'Подключено к Twitter',
+          description: `Аккаунт: @${data.user.username}`,
+        });
+      } else {
+        setTwitterConnected(false);
+        toast({
+          title: 'Ошибка подключения',
+          description: data.message || 'Проверьте API ключи',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      setTwitterConnected(false);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось проверить подключение',
+        variant: 'destructive',
+      });
+    } finally {
+      setCheckingConnection(false);
     }
   };
 
@@ -313,6 +350,29 @@ const Index = () => {
                 <CardDescription>Добавить аккаунт по auth_token или импортировать из файла</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${twitterConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <div>
+                        <p className="font-medium">Статус подключения Twitter API</p>
+                        <p className="text-sm text-muted-foreground">
+                          {twitterConnected ? 'API ключи настроены корректно' : 'Требуется настройка API ключей'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={checkTwitterConnection} 
+                      disabled={checkingConnection}
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      <Icon name={checkingConnection ? "Loader2" : "RefreshCw"} size={16} className={checkingConnection ? "animate-spin" : ""} />
+                      Проверить
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="flex gap-4 flex-wrap">
                   <Dialog open={showAddAccountDialog} onOpenChange={setShowAddAccountDialog}>
                     <DialogTrigger asChild>
