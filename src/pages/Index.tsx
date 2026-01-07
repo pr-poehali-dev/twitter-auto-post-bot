@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/ui/icon';
 import { toast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface Account {
   id: string;
@@ -42,6 +43,8 @@ const Index = () => {
   const [newPost, setNewPost] = useState('');
   const [autoRotation, setAutoRotation] = useState(true);
   const [postInterval, setPostInterval] = useState('30');
+  const [showAddAccountDialog, setShowAddAccountDialog] = useState(false);
+  const [newAccountData, setNewAccountData] = useState({ username: '', authToken: '' });
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -66,6 +69,25 @@ const Index = () => {
       toast({
         title: 'Пост добавлен',
         description: 'Публикация запланирована',
+      });
+    }
+  };
+
+  const handleAddAccount = () => {
+    if (newAccountData.username.trim() && newAccountData.authToken.trim()) {
+      const account: Account = {
+        id: Date.now().toString(),
+        username: newAccountData.username.startsWith('@') ? newAccountData.username : `@${newAccountData.username}`,
+        status: 'active',
+        postsCount: 0,
+        lastUsed: 'Никогда',
+      };
+      setAccounts([...accounts, account]);
+      setNewAccountData({ username: '', authToken: '' });
+      setShowAddAccountDialog(false);
+      toast({
+        title: 'Аккаунт добавлен',
+        description: `${account.username} успешно подключен`,
       });
     }
   };
@@ -159,13 +181,63 @@ const Index = () => {
                   <Icon name="Upload" size={20} />
                   Загрузка аккаунтов
                 </CardTitle>
-                <CardDescription>Импорт из CSV или TXT файла (формат: username, api_key, api_secret)</CardDescription>
+                <CardDescription>Добавить аккаунт по auth_token или импортировать из файла</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-4">
+                <div className="flex gap-4 flex-wrap">
+                  <Dialog open={showAddAccountDialog} onOpenChange={setShowAddAccountDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="gap-2">
+                        <Icon name="UserPlus" size={18} />
+                        Добавить аккаунт
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Добавить Twitter аккаунт</DialogTitle>
+                        <DialogDescription>
+                          Введите username и auth_token для подключения аккаунта
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="username">Username</Label>
+                          <Input
+                            id="username"
+                            placeholder="@your_account"
+                            value={newAccountData.username}
+                            onChange={(e) => setNewAccountData({ ...newAccountData, username: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="auth-token">Auth Token</Label>
+                          <Textarea
+                            id="auth-token"
+                            placeholder="Вставьте auth_token"
+                            value={newAccountData.authToken}
+                            onChange={(e) => setNewAccountData({ ...newAccountData, authToken: e.target.value })}
+                            className="font-mono text-sm min-h-24"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Токен можно получить в настройках разработчика Twitter API
+                          </p>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowAddAccountDialog(false)}>
+                          Отмена
+                        </Button>
+                        <Button onClick={handleAddAccount} disabled={!newAccountData.username || !newAccountData.authToken}>
+                          <Icon name="Check" size={16} className="mr-2" />
+                          Добавить
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
                   <Button variant="outline" className="gap-2" onClick={() => document.getElementById('file-upload')?.click()}>
                     <Icon name="FolderOpen" size={18} />
-                    Выбрать файл
+                    Импорт из файла
                   </Button>
                   <input
                     id="file-upload"
