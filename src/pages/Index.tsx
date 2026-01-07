@@ -26,6 +26,8 @@ interface Post {
   scheduledTime: string;
   status: 'pending' | 'published' | 'failed';
   accountId?: string;
+  videoUrl?: string;
+  videoName?: string;
 }
 
 const Index = () => {
@@ -45,6 +47,7 @@ const Index = () => {
   const [postInterval, setPostInterval] = useState('30');
   const [showAddAccountDialog, setShowAddAccountDialog] = useState(false);
   const [newAccountData, setNewAccountData] = useState({ username: '', authToken: '' });
+  const [attachedVideo, setAttachedVideo] = useState<{ name: string; url: string } | null>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -63,12 +66,49 @@ const Index = () => {
         content: newPost,
         scheduledTime: new Date(Date.now() + 3600000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
         status: 'pending',
+        ...(attachedVideo && { videoUrl: attachedVideo.url, videoName: attachedVideo.name })
       };
       setPosts([...posts, post]);
       setNewPost('');
+      setAttachedVideo(null);
       toast({
         title: 'Пост добавлен',
-        description: 'Публикация запланирована',
+        description: attachedVideo ? 'Публикация с видео запланирована' : 'Публикация запланирована',
+      });
+    }
+  };
+
+  const handlePostsFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim());
+        const newPosts: Post[] = lines.map((line, index) => ({
+          id: `${Date.now()}-${index}`,
+          content: line.trim(),
+          scheduledTime: new Date(Date.now() + (index + 1) * 3600000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          status: 'pending' as const,
+        }));
+        setPosts([...posts, ...newPosts]);
+        toast({
+          title: 'Посты загружены',
+          description: `Добавлено ${newPosts.length} постов из файла`,
+        });
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAttachedVideo({ name: file.name, url });
+      toast({
+        title: 'Видео прикреплено',
+        description: file.name,
       });
     }
   };
@@ -322,9 +362,51 @@ const Index = () => {
                   <Icon name="PenSquare" size={20} />
                   Создать пост
                 </CardTitle>
-                <CardDescription>Напишите текст для публикации в Twitter</CardDescription>
+                <CardDescription>Напишите текст для публикации или загрузите несколько постов из файла</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex gap-3">
+                  <Button variant="outline" className="gap-2" onClick={() => document.getElementById('posts-file-upload')?.click()}>
+                    <Icon name="FileText" size={18} />
+                    Загрузить посты из файла
+                  </Button>
+                  <input
+                    id="posts-file-upload"
+                    type="file"
+                    accept=".txt"
+                    className="hidden"
+                    onChange={handlePostsFileUpload}
+                  />
+                  <Button variant="secondary" className="gap-2" onClick={() => document.getElementById('video-upload')?.click()}>
+                    <Icon name="Video" size={18} />
+                    {attachedVideo ? 'Изменить видео' : 'Прикрепить видео'}
+                  </Button>
+                  <input
+                    id="video-upload"
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={handleVideoUpload}
+                  />
+                </div>
+
+                {attachedVideo && (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/10 border border-secondary/20 animate-fade-in">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded bg-secondary/20 flex items-center justify-center">
+                        <Icon name="Video" size={20} className="text-secondary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{attachedVideo.name}</p>
+                        <p className="text-xs text-muted-foreground">Видео будет добавлено к посту</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setAttachedVideo(null)}>
+                      <Icon name="X" size={16} />
+                    </Button>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Textarea
                     placeholder="Что происходит?"
@@ -352,8 +434,13 @@ const Index = () => {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="pt-0">
+                    <CardContent className="pt-0 space-y-3">
                       <p className="text-sm whitespace-pre-wrap">{newPost}</p>
+                      {attachedVideo && (
+                        <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
+                          <video src={attachedVideo.url} controls className="w-full h-full object-cover" />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -379,6 +466,12 @@ const Index = () => {
                     >
                       <div className="flex-1 space-y-2">
                         <p className="text-sm">{post.content}</p>
+                        {post.videoName && (
+                          <div className="flex items-center gap-2 p-2 rounded bg-secondary/10 border border-secondary/20">
+                            <Icon name="Video" size={14} className="text-secondary" />
+                            <span className="text-xs font-medium">{post.videoName}</span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Icon name="Clock" size={12} />
