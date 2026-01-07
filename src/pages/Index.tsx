@@ -292,7 +292,7 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="accounts" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="accounts" className="gap-2">
               <Icon name="UserCircle" size={16} />
               Аккаунты
@@ -300,10 +300,6 @@ const Index = () => {
             <TabsTrigger value="posts" className="gap-2">
               <Icon name="FileText" size={16} />
               Посты
-            </TabsTrigger>
-            <TabsTrigger value="schedule" className="gap-2">
-              <Icon name="Calendar" size={16} />
-              Расписание
             </TabsTrigger>
           </TabsList>
 
@@ -645,76 +641,7 @@ const Index = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="schedule" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Icon name="CalendarClock" size={20} />
-                  Расписание публикаций
-                </CardTitle>
-                <CardDescription>Настройка времени и частоты постинга</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-7 gap-2">
-                  {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map((day, index) => (
-                    <Button
-                      key={day}
-                      variant={index < 5 ? 'default' : 'outline'}
-                      className="h-12"
-                      size="sm"
-                    >
-                      {day}
-                    </Button>
-                  ))}
-                </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Временные слоты</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {['09:00', '12:00', '15:00', '18:00', '21:00'].map((time) => (
-                        <Button key={time} variant="outline" className="justify-start gap-2 h-12">
-                          <Icon name="Clock" size={16} />
-                          {time}
-                        </Button>
-                      ))}
-                      <Button variant="secondary" className="justify-start gap-2 h-12">
-                        <Icon name="Plus" size={16} />
-                        Добавить время
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <Icon name="Info" size={16} className="text-primary" />
-                      Статистика распределения
-                    </div>
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <div className="flex justify-between">
-                        <span>Постов в день:</span>
-                        <span className="font-mono font-medium">5-7</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Нагрузка на аккаунт:</span>
-                        <span className="font-mono font-medium">~2 поста/день</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Время ротации:</span>
-                        <span className="font-mono font-medium">{postInterval} минут</span>
-                      </div>
-                      {mutualLikes && (
-                        <div className="flex justify-between pt-2 border-t border-border">
-                          <span>Лайков на пост:</span>
-                          <span className="font-mono font-medium text-red-400">~{likesPerPost}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
     </div>
