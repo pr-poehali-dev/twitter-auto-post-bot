@@ -48,6 +48,8 @@ const Index = () => {
   const [showAddAccountDialog, setShowAddAccountDialog] = useState(false);
   const [newAccountData, setNewAccountData] = useState({ username: '', authToken: '' });
   const [attachedVideo, setAttachedVideo] = useState<{ name: string; url: string } | null>(null);
+  const [mutualLikes, setMutualLikes] = useState(true);
+  const [likesPerPost, setLikesPerPost] = useState('2');
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -188,12 +190,12 @@ const Index = () => {
 
           <Card className="hover-scale">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Ротация</CardTitle>
-              <Icon name="RefreshCw" size={18} className="text-green-500" />
+              <CardTitle className="text-sm font-medium">Взаимные лайки</CardTitle>
+              <Icon name="Heart" size={18} className="text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{autoRotation ? 'ON' : 'OFF'}</div>
-              <p className="text-xs text-muted-foreground mt-1">Авто-переключение</p>
+              <div className="text-3xl font-bold">{mutualLikes ? 'ON' : 'OFF'}</div>
+              <p className="text-xs text-muted-foreground mt-1">{mutualLikes ? `~${likesPerPost} лайков/пост` : 'Отключено'}</p>
             </CardContent>
           </Card>
         </div>
@@ -311,6 +313,58 @@ const Index = () => {
                     onChange={(e) => setPostInterval(e.target.value)}
                     className="max-w-xs"
                   />
+                </div>
+
+                <div className="p-4 rounded-lg border bg-card space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Icon name="Heart" size={18} className="text-primary" />
+                    <h3 className="font-medium">Взаимные лайки</h3>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="mutual-likes">Автоматические лайки от других аккаунтов</Label>
+                      <Switch id="mutual-likes" checked={mutualLikes} onCheckedChange={setMutualLikes} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      После публикации другие аккаунты автоматически поставят лайки
+                    </p>
+                  </div>
+
+                  {mutualLikes && (
+                    <div className="space-y-2 animate-fade-in">
+                      <Label htmlFor="likes-count">Количество лайков на пост</Label>
+                      <Input
+                        id="likes-count"
+                        type="number"
+                        min="1"
+                        max={accounts.length - 1}
+                        value={likesPerPost}
+                        onChange={(e) => setLikesPerPost(e.target.value)}
+                        className="max-w-xs"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Максимум: {accounts.length - 1} (все аккаунты кроме автора)
+                      </p>
+                    </div>
+                  )}
+
+                  {mutualLikes && (
+                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                      <div className="flex items-start gap-2">
+                        <Icon name="Sparkles" size={16} className="text-primary mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Преимущества</p>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• Повышение органического охвата</li>
+                            <li>• Алгоритм Twitter показывает посты чаще</li>
+                            <li>• Создание эффекта активного сообщества</li>
+                            <li>• Задержка 5-15 минут для естественности</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -558,6 +612,12 @@ const Index = () => {
                         <span>Время ротации:</span>
                         <span className="font-mono font-medium">{postInterval} минут</span>
                       </div>
+                      {mutualLikes && (
+                        <div className="flex justify-between pt-2 border-t border-border">
+                          <span>Лайков на пост:</span>
+                          <span className="font-mono font-medium text-red-400">~{likesPerPost}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
