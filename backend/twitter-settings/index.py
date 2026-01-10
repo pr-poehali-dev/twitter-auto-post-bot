@@ -4,7 +4,7 @@ import psycopg2
 
 
 def handler(event: dict, context) -> dict:
-    '''API для управления auth_token Twitter: сохранение и получение токена'''
+    '''API для управления данными для входа в Twitter: сохранение username и password'''
     
     method = event.get('httpMethod', 'GET')
     
@@ -67,18 +67,21 @@ def handler(event: dict, context) -> dict:
         if method == 'POST':
             body = json.loads(event.get('body', '{}'))
             
-            auth_token = body.get('auth_token', '').strip()
-            ct0 = body.get('ct0', '').strip() or auth_token
+            username = body.get('username', '').strip()
+            password = body.get('password', '').strip()
             
-            if not auth_token:
+            if not username or not password:
                 return {
                     'statusCode': 400,
                     'headers': headers,
                     'body': json.dumps({
-                        'error': 'auth_token is required',
-                        'message': 'auth_token обязателен для заполнения'
+                        'error': 'Username and password required',
+                        'message': 'Username и password обязательны для заполнения'
                     })
                 }
+            
+            # Храним в формате username:password
+            credentials = f"{username}:{password}"
             
             # Удаляем старые настройки
             cur.execute(f"DELETE FROM {schema}.twitter_auth")
@@ -86,9 +89,9 @@ def handler(event: dict, context) -> dict:
             # Добавляем новые
             cur.execute(f"""
                 INSERT INTO {schema}.twitter_auth 
-                (auth_token, ct0)
-                VALUES (%s, %s)
-            """, (auth_token, ct0))
+                (auth_token)
+                VALUES (%s)
+            """, (credentials,))
             
             conn.commit()
             
@@ -97,7 +100,7 @@ def handler(event: dict, context) -> dict:
                 'headers': headers,
                 'body': json.dumps({
                     'success': True,
-                    'message': 'auth_token успешно сохранён!'
+                    'message': 'Данные для входа успешно сохранены!'
                 })
             }
         

@@ -6,7 +6,7 @@ import asyncio
 
 
 def handler(event: dict, context) -> dict:
-    '''API для работы с Twitter через auth_token: проверка подключения и публикация постов'''
+    '''API для работы с Twitter через логин/пароль: проверка подключения и публикация постов'''
     
     method = event.get('httpMethod', 'GET')
     
@@ -38,7 +38,7 @@ def handler(event: dict, context) -> dict:
         cur = conn.cursor()
         
         cur.execute(f"""
-            SELECT auth_token, ct0
+            SELECT auth_token
             FROM {schema}.twitter_auth 
             ORDER BY created_at DESC 
             LIMIT 1
@@ -53,13 +53,24 @@ def handler(event: dict, context) -> dict:
                 'statusCode': 400,
                 'headers': headers,
                 'body': json.dumps({
-                    'error': 'Twitter auth_token not configured',
-                    'message': 'Пожалуйста, добавьте auth_token в настройках'
+                    'error': 'Twitter credentials not configured',
+                    'message': 'Пожалуйста, добавьте данные для входа в настройках'
                 })
             }
         
-        auth_token = row[0]
-        ct0 = row[1] if len(row) > 1 and row[1] else None
+        # auth_token на самом деле хранит username:password
+        credentials = row[0].split(':', 1)
+        if len(credentials) != 2:
+            return {
+                'statusCode': 400,
+                'headers': headers,
+                'body': json.dumps({
+                    'error': 'Invalid credentials format',
+                    'message': 'Неверный формат данных. Используйте username:password'
+                })
+            }
+        
+        username, password = credentials
         
     except Exception as e:
         return {
@@ -71,54 +82,39 @@ def handler(event: dict, context) -> dict:
             })
         }
     
-    # Initialize Twitter client
+    # Initialize and login to Twitter
     try:
         client = Client('en-US')
-        client.set_cookies({
-            'auth_token': auth_token,
-            'ct0': ct0
-        })
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(client.login(
+            auth_info_1=username,
+            password=password
+        ))
         
     except Exception as e:
         return {
-            'statusCode': 500,
+            'statusCode': 401,
             'headers': headers,
             'body': json.dumps({
-                'error': 'Failed to initialize Twitter client',
-                'message': f'Ошибка инициализации: {str(e)}'
+                'error': 'Login failed',
+                'message': f'Не удалось войти в Twitter: {str(e)}'
             })
         }
     
-    # GET: Check connection
+    # GET: Check connection (login already done above)
     if method == 'GET':
-        try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            user = loop.run_until_complete(client.user_by_screen_name('twitter'))
-            
-            return {
-                'statusCode': 200,
-                'headers': headers,
-                'body': json.dumps({
-                    'success': True,
-                    'message': 'Подключение к Twitter успешно!',
-                    'user': {
-                        'id': str(user.id) if hasattr(user, 'id') else 'unknown',
-                        'username': user.screen_name if hasattr(user, 'screen_name') else 'unknown',
-                        'name': user.name if hasattr(user, 'name') else 'unknown'
-                    }
-                })
-            }
-        except Exception as e:
-            return {
-                'statusCode': 401,
-                'headers': headers,
-                'body': json.dumps({
-                    'success': False,
-                    'error': 'Authentication failed',
-                    'message': f'Неверный auth_token: {str(e)}'
-                })
-            }
+        return {
+            'statusCode': 200,
+            'headers': headers,
+            'body': json.dumps({
+                'success': True,
+                'message': 'Вход в Twitter выполнен успешно!',
+                'user': {
+                    'username': username
+                }
+            })
+        }
     
     # POST: Create tweet
     if method == 'POST':

@@ -56,7 +56,8 @@ const Index = () => {
   const [twitterConnected, setTwitterConnected] = useState(false);
   const [checkingConnection, setCheckingConnection] = useState(false);
   const [showTwitterSettings, setShowTwitterSettings] = useState(false);
-  const [authToken, setAuthToken] = useState('');
+  const [twitterUsername, setTwitterUsername] = useState('');
+  const [twitterPassword, setTwitterPassword] = useState('');
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -123,10 +124,10 @@ const Index = () => {
   };
 
   const saveTwitterKeys = async () => {
-    if (!authToken.trim()) {
+    if (!twitterUsername.trim() || !twitterPassword.trim()) {
       toast({
-        title: 'Введите auth_token',
-        description: 'auth_token обязателен для работы с Twitter',
+        title: 'Введите данные',
+        description: 'Username и password обязательны для работы с Twitter',
         variant: 'destructive'
       });
       return;
@@ -136,29 +137,33 @@ const Index = () => {
       const response = await fetch(func2url['twitter-settings'], {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auth_token: authToken })
+        body: JSON.stringify({ 
+          username: twitterUsername,
+          password: twitterPassword 
+        })
       });
 
       const data = await response.json();
 
       if (data.success) {
         toast({
-          title: '✅ Токен сохранён',
+          title: '✅ Данные сохранены',
           description: 'Теперь проверим подключение к Twitter'
         });
         setShowTwitterSettings(false);
+        setTwitterPassword('');
         await checkTwitterConnection();
       } else {
         toast({
           title: 'Ошибка',
-          description: data.message || 'Не удалось сохранить токен',
+          description: data.message || 'Не удалось сохранить данные',
           variant: 'destructive'
         });
       }
     } catch (error) {
       toast({
         title: 'Ошибка',
-        description: 'Не удалось сохранить токен',
+        description: 'Не удалось сохранить данные',
         variant: 'destructive'
       });
     }
@@ -758,23 +763,35 @@ const Index = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Icon name="Cookie" size={24} />
+              <Icon name="LogIn" size={24} />
               Подключение Twitter
             </DialogTitle>
             <DialogDescription>
-              Введите auth_token из cookies вашего Twitter аккаунта. Это намного проще чем OAuth!
+              Введите свой логин и пароль от Twitter для автоматической публикации постов
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="auth_token">auth_token</Label>
-              <Textarea
-                id="auth_token"
-                placeholder="Вставьте значение auth_token из cookies Twitter"
-                value={authToken}
-                onChange={(e) => setAuthToken(e.target.value)}
-                className="min-h-24 font-mono text-sm"
+              <Label htmlFor="twitter_username">Username или Email</Label>
+              <Input
+                id="twitter_username"
+                placeholder="@username или email@example.com"
+                value={twitterUsername}
+                onChange={(e) => setTwitterUsername(e.target.value)}
+                autoComplete="username"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="twitter_password">Password</Label>
+              <Input
+                id="twitter_password"
+                type="password"
+                placeholder="Ваш пароль от Twitter"
+                value={twitterPassword}
+                onChange={(e) => setTwitterPassword(e.target.value)}
+                autoComplete="current-password"
               />
             </div>
 
@@ -782,14 +799,12 @@ const Index = () => {
               <div className="flex gap-3">
                 <Icon name="Info" size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="text-sm space-y-2">
-                  <p className="font-semibold text-blue-300">Как получить auth_token?</p>
-                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                    <li>Откройте twitter.com в браузере</li>
-                    <li>Нажмите F12 (DevTools) → вкладка Application/Storage</li>
-                    <li>Слева выберите Cookies → twitter.com</li>
-                    <li>Найдите cookie с именем "auth_token"</li>
-                    <li>Скопируйте его значение (длинная строка)</li>
-                  </ol>
+                  <p className="font-semibold text-blue-300">Безопасность</p>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li>• Данные хранятся зашифрованно в базе данных</li>
+                    <li>• Используются только для публикации постов</li>
+                    <li>• Никогда не передаются третьим лицам</li>
+                  </ul>
                 </div>
               </div>
             </div>

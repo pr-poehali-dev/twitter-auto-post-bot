@@ -11,11 +11,12 @@
       "bodyMatcher": "partial"
     },
     {
-      "name": "Save auth_token",
+      "name": "Save Twitter credentials",
       "method": "POST",
       "path": "/",
       "body": {
-        "auth_token": "test_auth_token_value"
+        "username": "test_user",
+        "password": "test_password"
       },
       "expectedStatus": 200,
       "expectedBody": {

@@ -7,11 +7,8 @@
       "expectedStatus": 200,
       "expectedBody": {
         "success": true,
-        "message": "string",
         "user": {
-          "id": "string",
-          "username": "string",
-          "name": "string"
+          "username": "string"
         }
       },
       "bodyMatcher": "partial"
