@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "Get twitter settings status",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "configured": "boolean"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Save twitter settings",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "api_key": "test_key",
+        "api_secret": "test_secret",
+        "access_token": "test_token",
+        "access_token_secret": "test_token_secret"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

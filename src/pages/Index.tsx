@@ -55,6 +55,13 @@ const Index = () => {
   const [scenarioProgress, setScenarioProgress] = useState(0);
   const [twitterConnected, setTwitterConnected] = useState(false);
   const [checkingConnection, setCheckingConnection] = useState(false);
+  const [showTwitterSettings, setShowTwitterSettings] = useState(false);
+  const [twitterKeys, setTwitterKeys] = useState({
+    api_key: '',
+    api_secret: '',
+    access_token: '',
+    access_token_secret: ''
+  });
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -116,6 +123,48 @@ const Index = () => {
       toast({
         title: 'Видео прикреплено',
         description: file.name,
+      });
+    }
+  };
+
+  const saveTwitterKeys = async () => {
+    if (!twitterKeys.api_key || !twitterKeys.api_secret || !twitterKeys.access_token || !twitterKeys.access_token_secret) {
+      toast({
+        title: 'Заполните все поля',
+        description: 'Все 4 ключа обязательны для работы с Twitter',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(func2url['twitter-settings'], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(twitterKeys)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: '✅ Ключи сохранены',
+          description: 'Теперь проверим подключение к Twitter'
+        });
+        setShowTwitterSettings(false);
+        await checkTwitterConnection();
+      } else {
+        toast({
+          title: 'Ошибка',
+          description: data.message || 'Не удалось сохранить ключи',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось сохранить ключи',
+        variant: 'destructive'
       });
     }
   };
@@ -253,9 +302,14 @@ const Index = () => {
                   Запустить сценарий
                 </Button>
               )}
-              <Button size="lg" variant="outline" className="gap-2">
-                <Icon name="Settings" size={18} />
-                Настройки
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => setShowTwitterSettings(true)}
+              >
+                <Icon name="Key" size={18} />
+                Twitter API
               </Button>
             </div>
           </div>
@@ -704,6 +758,89 @@ const Index = () => {
 
         </Tabs>
       </div>
+
+      <Dialog open={showTwitterSettings} onOpenChange={setShowTwitterSettings}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Icon name="Key" size={24} />
+              Настройка Twitter API
+            </DialogTitle>
+            <DialogDescription>
+              Введите 4 ключа из Twitter Developer Portal. Они хранятся в защищённой базе данных.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="api_key">API Key (Consumer Key)</Label>
+              <Input
+                id="api_key"
+                placeholder="Введите API Key"
+                value={twitterKeys.api_key}
+                onChange={(e) => setTwitterKeys({...twitterKeys, api_key: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="api_secret">API Secret (Consumer Secret)</Label>
+              <Input
+                id="api_secret"
+                type="password"
+                placeholder="Введите API Secret"
+                value={twitterKeys.api_secret}
+                onChange={(e) => setTwitterKeys({...twitterKeys, api_secret: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="access_token">Access Token</Label>
+              <Input
+                id="access_token"
+                placeholder="Введите Access Token"
+                value={twitterKeys.access_token}
+                onChange={(e) => setTwitterKeys({...twitterKeys, access_token: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="access_token_secret">Access Token Secret</Label>
+              <Input
+                id="access_token_secret"
+                type="password"
+                placeholder="Введите Access Token Secret"
+                value={twitterKeys.access_token_secret}
+                onChange={(e) => setTwitterKeys({...twitterKeys, access_token_secret: e.target.value})}
+              />
+            </div>
+
+            <div className="bg-blue-950/20 border border-blue-500/30 rounded-lg p-4">
+              <div className="flex gap-3">
+                <Icon name="Info" size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm space-y-2">
+                  <p className="font-semibold text-blue-300">Где взять ключи?</p>
+                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                    <li>Откройте developer.twitter.com/en/portal/dashboard</li>
+                    <li>Выберите ваше приложение</li>
+                    <li>Перейдите в Keys and tokens</li>
+                    <li>Скопируйте все 4 значения</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTwitterSettings(false)}>
+              Отмена
+            </Button>
+            <Button onClick={saveTwitterKeys} className="gap-2">
+              <Icon name="Save" size={18} />
+              Сохранить и проверить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

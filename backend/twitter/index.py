@@ -1,5 +1,6 @@
 import json
 import os
+import psycopg2
 from tweepy import Client, API
 from tweepy.auth import OAuthHandler
 
@@ -20,19 +21,54 @@ def handler(event: dict, context) -> dict:
     if method == 'OPTIONS':
         return {'statusCode': 200, 'headers': headers, 'body': ''}
     
-    # Get credentials from environment
-    api_key = os.environ.get('TWITTER_API_KEY')
-    api_secret = os.environ.get('TWITTER_API_SECRET')
-    access_token = os.environ.get('TWITTER_ACCESS_TOKEN')
-    access_token_secret = os.environ.get('TWITTER_ACCESS_TOKEN_SECRET')
+    # Get credentials from database
+    dsn = os.environ.get('DATABASE_URL')
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     
-    if not all([api_key, api_secret, access_token, access_token_secret]):
+    if not dsn:
         return {
-            'statusCode': 400,
+            'statusCode': 500,
             'headers': headers,
             'body': json.dumps({
-                'error': 'Twitter API credentials not configured',
-                'message': 'Пожалуйста, добавьте все 4 ключа Twitter API в настройках проекта'
+                'error': 'Database not configured',
+                'message': 'База данных не настроена'
+            })
+        }
+    
+    try:
+        conn = psycopg2.connect(dsn)
+        cur = conn.cursor()
+        
+        cur.execute(f"""
+            SELECT api_key, api_secret, access_token, access_token_secret 
+            FROM {schema}.twitter_settings 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        """)
+        
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not row or not all(row):
+            return {
+                'statusCode': 400,
+                'headers': headers,
+                'body': json.dumps({
+                    'error': 'Twitter API credentials not configured',
+                    'message': 'Пожалуйста, добавьте все 4 ключа Twitter API в настройках'
+                })
+            }
+        
+        api_key, api_secret, access_token, access_token_secret = row
+        
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': headers,
+            'body': json.dumps({
+                'error': 'Failed to load credentials',
+                'message': f'Не удалось загрузить ключи из базы: {str(e)}'
             })
         }
     
