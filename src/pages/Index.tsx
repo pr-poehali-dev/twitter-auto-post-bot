@@ -56,12 +56,7 @@ const Index = () => {
   const [twitterConnected, setTwitterConnected] = useState(false);
   const [checkingConnection, setCheckingConnection] = useState(false);
   const [showTwitterSettings, setShowTwitterSettings] = useState(false);
-  const [twitterKeys, setTwitterKeys] = useState({
-    api_key: '',
-    api_secret: '',
-    access_token: '',
-    access_token_secret: ''
-  });
+  const [authToken, setAuthToken] = useState('');
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -128,10 +123,10 @@ const Index = () => {
   };
 
   const saveTwitterKeys = async () => {
-    if (!twitterKeys.api_key || !twitterKeys.api_secret || !twitterKeys.access_token || !twitterKeys.access_token_secret) {
+    if (!authToken.trim()) {
       toast({
-        title: 'Заполните все поля',
-        description: 'Все 4 ключа обязательны для работы с Twitter',
+        title: 'Введите auth_token',
+        description: 'auth_token обязателен для работы с Twitter',
         variant: 'destructive'
       });
       return;
@@ -141,14 +136,14 @@ const Index = () => {
       const response = await fetch(func2url['twitter-settings'], {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(twitterKeys)
+        body: JSON.stringify({ auth_token: authToken })
       });
 
       const data = await response.json();
 
       if (data.success) {
         toast({
-          title: '✅ Ключи сохранены',
+          title: '✅ Токен сохранён',
           description: 'Теперь проверим подключение к Twitter'
         });
         setShowTwitterSettings(false);
@@ -156,14 +151,14 @@ const Index = () => {
       } else {
         toast({
           title: 'Ошибка',
-          description: data.message || 'Не удалось сохранить ключи',
+          description: data.message || 'Не удалось сохранить токен',
           variant: 'destructive'
         });
       }
     } catch (error) {
       toast({
         title: 'Ошибка',
-        description: 'Не удалось сохранить ключи',
+        description: 'Не удалось сохранить токен',
         variant: 'destructive'
       });
     }
@@ -763,54 +758,23 @@ const Index = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Icon name="Key" size={24} />
-              Настройка Twitter API
+              <Icon name="Cookie" size={24} />
+              Подключение Twitter
             </DialogTitle>
             <DialogDescription>
-              Введите 4 ключа из Twitter Developer Portal. Они хранятся в защищённой базе данных.
+              Введите auth_token из cookies вашего Twitter аккаунта. Это намного проще чем OAuth!
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="api_key">API Key (Consumer Key)</Label>
-              <Input
-                id="api_key"
-                placeholder="Введите API Key"
-                value={twitterKeys.api_key}
-                onChange={(e) => setTwitterKeys({...twitterKeys, api_key: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="api_secret">API Secret (Consumer Secret)</Label>
-              <Input
-                id="api_secret"
-                type="password"
-                placeholder="Введите API Secret"
-                value={twitterKeys.api_secret}
-                onChange={(e) => setTwitterKeys({...twitterKeys, api_secret: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="access_token">Access Token</Label>
-              <Input
-                id="access_token"
-                placeholder="Введите Access Token"
-                value={twitterKeys.access_token}
-                onChange={(e) => setTwitterKeys({...twitterKeys, access_token: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="access_token_secret">Access Token Secret</Label>
-              <Input
-                id="access_token_secret"
-                type="password"
-                placeholder="Введите Access Token Secret"
-                value={twitterKeys.access_token_secret}
-                onChange={(e) => setTwitterKeys({...twitterKeys, access_token_secret: e.target.value})}
+              <Label htmlFor="auth_token">auth_token</Label>
+              <Textarea
+                id="auth_token"
+                placeholder="Вставьте значение auth_token из cookies Twitter"
+                value={authToken}
+                onChange={(e) => setAuthToken(e.target.value)}
+                className="min-h-24 font-mono text-sm"
               />
             </div>
 
@@ -818,12 +782,13 @@ const Index = () => {
               <div className="flex gap-3">
                 <Icon name="Info" size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="text-sm space-y-2">
-                  <p className="font-semibold text-blue-300">Где взять ключи?</p>
+                  <p className="font-semibold text-blue-300">Как получить auth_token?</p>
                   <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                    <li>Откройте developer.twitter.com/en/portal/dashboard</li>
-                    <li>Выберите ваше приложение</li>
-                    <li>Перейдите в Keys and tokens</li>
-                    <li>Скопируйте все 4 значения</li>
+                    <li>Откройте twitter.com в браузере</li>
+                    <li>Нажмите F12 (DevTools) → вкладка Application/Storage</li>
+                    <li>Слева выберите Cookies → twitter.com</li>
+                    <li>Найдите cookie с именем "auth_token"</li>
+                    <li>Скопируйте его значение (длинная строка)</li>
                   </ol>
                 </div>
               </div>

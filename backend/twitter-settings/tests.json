@@ -11,14 +11,11 @@
       "bodyMatcher": "partial"
     },
     {
-      "name": "Save twitter settings",
+      "name": "Save auth_token",
       "method": "POST",
       "path": "/",
       "body": {
-        "api_key": "test_key",
-        "api_secret": "test_secret",
-        "access_token": "test_token",
-        "access_token_secret": "test_token_secret"
+        "auth_token": "test_auth_token_value"
       },
       "expectedStatus": 200,
       "expectedBody": {

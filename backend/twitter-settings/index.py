@@ -4,7 +4,7 @@ import psycopg2
 
 
 def handler(event: dict, context) -> dict:
-    '''API для управления настройками Twitter: сохранение и получение ключей доступа'''
+    '''API для управления auth_token Twitter: сохранение и получение токена'''
     
     method = event.get('httpMethod', 'GET')
     
@@ -32,17 +32,14 @@ def handler(event: dict, context) -> dict:
     cur = conn.cursor()
     
     try:
-        # GET: получить текущие настройки (без секретов)
+        # GET: получить статус настроек
         if method == 'GET':
             cur.execute(f"""
                 SELECT 
-                    CASE WHEN api_key IS NOT NULL AND api_key != '' THEN true ELSE false END as has_api_key,
-                    CASE WHEN api_secret IS NOT NULL AND api_secret != '' THEN true ELSE false END as has_api_secret,
-                    CASE WHEN access_token IS NOT NULL AND access_token != '' THEN true ELSE false END as has_access_token,
-                    CASE WHEN access_token_secret IS NOT NULL AND access_token_secret != '' THEN true ELSE false END as has_access_token_secret,
+                    CASE WHEN auth_token IS NOT NULL AND auth_token != '' THEN true ELSE false END as has_auth_token,
                     created_at,
                     updated_at
-                FROM {schema}.twitter_settings 
+                FROM {schema}.twitter_auth 
                 ORDER BY created_at DESC 
                 LIMIT 1
             """)
@@ -54,12 +51,9 @@ def handler(event: dict, context) -> dict:
                     'statusCode': 200,
                     'headers': headers,
                     'body': json.dumps({
-                        'configured': all([row[0], row[1], row[2], row[3]]),
-                        'has_api_key': row[0],
-                        'has_api_secret': row[1],
-                        'has_access_token': row[2],
-                        'has_access_token_secret': row[3],
-                        'updated_at': str(row[5]) if row[5] else str(row[4])
+                        'configured': row[0],
+                        'has_auth_token': row[0],
+                        'updated_at': str(row[2]) if row[2] else str(row[1])
                     })
                 }
             else:
@@ -69,34 +63,32 @@ def handler(event: dict, context) -> dict:
                     'body': json.dumps({'configured': False})
                 }
         
-        # POST: сохранить новые настройки
+        # POST: сохранить новый auth_token
         if method == 'POST':
             body = json.loads(event.get('body', '{}'))
             
-            api_key = body.get('api_key', '').strip()
-            api_secret = body.get('api_secret', '').strip()
-            access_token = body.get('access_token', '').strip()
-            access_token_secret = body.get('access_token_secret', '').strip()
+            auth_token = body.get('auth_token', '').strip()
+            ct0 = body.get('ct0', '').strip() or auth_token
             
-            if not all([api_key, api_secret, access_token, access_token_secret]):
+            if not auth_token:
                 return {
                     'statusCode': 400,
                     'headers': headers,
                     'body': json.dumps({
-                        'error': 'All fields are required',
-                        'message': 'Все 4 ключа обязательны для заполнения'
+                        'error': 'auth_token is required',
+                        'message': 'auth_token обязателен для заполнения'
                     })
                 }
             
             # Удаляем старые настройки
-            cur.execute(f"DELETE FROM {schema}.twitter_settings")
+            cur.execute(f"DELETE FROM {schema}.twitter_auth")
             
             # Добавляем новые
             cur.execute(f"""
-                INSERT INTO {schema}.twitter_settings 
-                (api_key, api_secret, access_token, access_token_secret)
-                VALUES (%s, %s, %s, %s)
-            """, (api_key, api_secret, access_token, access_token_secret))
+                INSERT INTO {schema}.twitter_auth 
+                (auth_token, ct0)
+                VALUES (%s, %s)
+            """, (auth_token, ct0))
             
             conn.commit()
             
@@ -105,7 +97,7 @@ def handler(event: dict, context) -> dict:
                 'headers': headers,
                 'body': json.dumps({
                     'success': True,
-                    'message': 'Настройки Twitter успешно сохранены!'
+                    'message': 'auth_token успешно сохранён!'
                 })
             }
         
