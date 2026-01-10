@@ -1,7 +1,8 @@
 import json
 import os
 import psycopg2
-import requests
+from twikit import Client
+import asyncio
 
 
 def handler(event: dict, context) -> dict:
@@ -58,7 +59,7 @@ def handler(event: dict, context) -> dict:
             }
         
         auth_token = row[0]
-        ct0 = row[1] if len(row) > 1 and row[1] else auth_token
+        ct0 = row[1] if len(row) > 1 and row[1] else None
         
     except Exception as e:
         return {
@@ -70,60 +71,52 @@ def handler(event: dict, context) -> dict:
             })
         }
     
-    # Prepare Twitter API headers
-    twitter_headers = {
-        'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
-        'cookie': f'auth_token={auth_token}; ct0={ct0}',
-        'x-csrf-token': ct0,
-        'content-type': 'application/json',
-        'x-twitter-active-user': 'yes',
-        'x-twitter-auth-type': 'OAuth2Session',
-        'x-twitter-client-language': 'en'
-    }
+    # Initialize Twitter client
+    try:
+        client = Client('en-US')
+        client.set_cookies({
+            'auth_token': auth_token,
+            'ct0': ct0
+        })
+        
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': headers,
+            'body': json.dumps({
+                'error': 'Failed to initialize Twitter client',
+                'message': f'Ошибка инициализации: {str(e)}'
+            })
+        }
     
-    # GET: Check connection (verify credentials)
+    # GET: Check connection
     if method == 'GET':
         try:
-            response = requests.get(
-                'https://api.twitter.com/1.1/account/verify_credentials.json',
-                headers=twitter_headers,
-                timeout=10
-            )
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            user = loop.run_until_complete(client.user_by_screen_name('twitter'))
             
-            if response.status_code == 200:
-                user_data = response.json()
-                return {
-                    'statusCode': 200,
-                    'headers': headers,
-                    'body': json.dumps({
-                        'success': True,
-                        'message': 'Подключение к Twitter успешно!',
-                        'user': {
-                            'id': user_data.get('id_str'),
-                            'username': user_data.get('screen_name'),
-                            'name': user_data.get('name')
-                        }
-                    })
-                }
-            else:
-                return {
-                    'statusCode': 401,
-                    'headers': headers,
-                    'body': json.dumps({
-                        'success': False,
-                        'error': 'Authentication failed',
-                        'message': f'Неверный auth_token. Код ошибки: {response.status_code}'
-                    })
-                }
-                
+            return {
+                'statusCode': 200,
+                'headers': headers,
+                'body': json.dumps({
+                    'success': True,
+                    'message': 'Подключение к Twitter успешно!',
+                    'user': {
+                        'id': str(user.id) if hasattr(user, 'id') else 'unknown',
+                        'username': user.screen_name if hasattr(user, 'screen_name') else 'unknown',
+                        'name': user.name if hasattr(user, 'name') else 'unknown'
+                    }
+                })
+            }
         except Exception as e:
             return {
-                'statusCode': 500,
+                'statusCode': 401,
                 'headers': headers,
                 'body': json.dumps({
                     'success': False,
-                    'error': 'Connection error',
-                    'message': f'Ошибка подключения: {str(e)}'
+                    'error': 'Authentication failed',
+                    'message': f'Неверный auth_token: {str(e)}'
                 })
             }
     
@@ -143,73 +136,23 @@ def handler(event: dict, context) -> dict:
                     })
                 }
             
-            tweet_data = {
-                'text': text,
-                'variables': {
-                    'tweet_text': text,
-                    'dark_request': False,
-                    'media': {
-                        'media_entities': [],
-                        'possibly_sensitive': False
-                    },
-                    'semantic_annotation_ids': []
-                },
-                'features': {
-                    'tweetypie_unmention_optimization_enabled': True,
-                    'responsive_web_edit_tweet_api_enabled': True,
-                    'graphql_is_translatable_rweb_tweet_is_translatable_enabled': True,
-                    'view_counts_everywhere_api_enabled': True,
-                    'longform_notetweets_consumption_enabled': True,
-                    'responsive_web_twitter_article_tweet_consumption_enabled': False,
-                    'tweet_awards_web_tipping_enabled': False,
-                    'longform_notetweets_rich_text_read_enabled': True,
-                    'longform_notetweets_inline_media_enabled': True,
-                    'responsive_web_graphql_exclude_directive_enabled': True,
-                    'verified_phone_label_enabled': False,
-                    'freedom_of_speech_not_reach_fetch_enabled': True,
-                    'standardized_nudges_misinfo': True,
-                    'tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled': True,
-                    'responsive_web_media_download_video_enabled': False,
-                    'responsive_web_graphql_skip_user_profile_image_extensions_enabled': False,
-                    'responsive_web_graphql_timeline_navigation_enabled': True,
-                    'responsive_web_enhance_cards_enabled': False
-                }
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            tweet = loop.run_until_complete(client.create_tweet(text))
+            
+            return {
+                'statusCode': 200,
+                'headers': headers,
+                'body': json.dumps({
+                    'success': True,
+                    'message': 'Пост успешно опубликован!',
+                    'tweet': {
+                        'id': str(tweet.id) if hasattr(tweet, 'id') else 'unknown',
+                        'text': text,
+                        'url': f'https://twitter.com/i/web/status/{tweet.id}' if hasattr(tweet, 'id') else None
+                    }
+                })
             }
-            
-            response = requests.post(
-                'https://twitter.com/i/api/graphql/SoVnbfCycZ7fERGCwpZkYA/CreateTweet',
-                headers=twitter_headers,
-                json=tweet_data,
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                tweet_id = result.get('data', {}).get('create_tweet', {}).get('tweet_results', {}).get('result', {}).get('rest_id')
-                
-                return {
-                    'statusCode': 200,
-                    'headers': headers,
-                    'body': json.dumps({
-                        'success': True,
-                        'message': 'Пост успешно опубликован!',
-                        'tweet': {
-                            'id': tweet_id,
-                            'text': text,
-                            'url': f'https://twitter.com/i/web/status/{tweet_id}' if tweet_id else None
-                        }
-                    })
-                }
-            else:
-                return {
-                    'statusCode': 500,
-                    'headers': headers,
-                    'body': json.dumps({
-                        'success': False,
-                        'error': 'Failed to create tweet',
-                        'message': f'Ошибка при публикации. Код: {response.status_code}, Ответ: {response.text[:200]}'
-                    })
-                }
             
         except Exception as e:
             return {
